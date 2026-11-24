@@ -4,16 +4,29 @@ pipeline {
 
     environment {
         DOCKER_USER = 'sasimaddela'
-        IMAGE_NAME = 'app'
-        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+        IMAGE_NAME = 'sasi'
+        CREDENTIALS_ID = 'dockerhub-credentials'
     }
 
     stages {
 
         stage('Checkout Code') {
             steps {
+                echo 'Checking out source code from GitHub'
+
                 git branch: 'main',
-                url: 'https://github.com/krishna205130l-cpu/chinnoda.git'
+                    url: 'https://github.com/maddelasasi/sasi.git'
+            }
+        }
+
+        stage('Verify Files') {
+            steps {
+                sh '''
+                    echo "Checking project files..."
+                    ls -la
+                    test -f Dockerfile
+                    test -f app.py
+                '''
             }
         }
 
@@ -30,7 +43,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: "${DOCKER_CREDENTIALS}",
+                        credentialsId: "${CREDENTIALS_ID}",
                         usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -43,7 +56,7 @@ pipeline {
             }
         }
 
-        stage('Push Image to Docker Hub') {
+        stage('Push to Docker Hub') {
             steps {
                 sh '''
                     docker push ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
@@ -51,23 +64,23 @@ pipeline {
                 '''
             }
         }
-
     }
 
     post {
+        success {
+            echo 'SUCCESS: Docker image pushed to Docker Hub!'
+        }
+
+        failure {
+            echo 'FAILURE: Check the Jenkins Console Output.'
+        }
+
         always {
             sh '''
                 docker logout || true
                 docker image prune -f || true
             '''
         }
-
-        success {
-            echo 'Docker image pushed successfully!'
-        }
-
-        failure {
-            echo 'Pipeline failed. Check Console Output.'
-        }
     }
 }
+
